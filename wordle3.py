@@ -45,6 +45,47 @@ fixed_font = QtGui.QFont('Courier New', 14, QtGui.QFont.Monospace)
 grid_font = QtGui.QFont('Ariel', 18)
 
 
+def get_letter_states(wordle, guess):
+
+    print('')
+
+    state = [None]*5
+
+    for ltr in range(5):
+        print('letter index', ltr)
+        if  guess[ltr] == wordle[ltr]:
+            state[ltr] = ST_CORRECT
+        elif guess[ltr] not in wordle:
+            state[ltr] = ST_REJECT
+
+    # now done with two easy cases, now set elsewhere as long stat hasn't already been marked as one of the other
+    # non-reject states
+    # count up how many states are set to CORRECT or ELSEWHERE
+    # count up how many times this letter appears in wordle
+    # if a less than b, set as ELSEWHERE
+
+    for ltr in range(5):
+        if state[ltr] is not None:
+            continue
+
+        print('  %s is Elsewhere' % guess[ltr])
+
+        letter_count = wordle.count(guess[ltr])
+        mark_count = 0
+        for k in range(5):
+            if k == ltr:
+                continue
+            if guess[k] == guess[ltr] and state[k] == ST_ELSEWHERE:
+                mark_count += 1
+
+        if letter_count > mark_count:
+            state[ltr] = ST_ELSEWHERE
+        else:
+            state[ltr] = ST_REJECT
+
+
+    return state
+
 class LetterBox(QtWidgets.QLabel):
     def __init__(self, update_function, parent=None):
         QtWidgets.QLabel.__init__(self, parent)
@@ -101,6 +142,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle('Wordle Solver')
+
+        self.real_wordles = [line.strip().upper() for line in open("shuffled_real_wordles.txt")]
+        self.real_wordles = self.real_wordles[1:] # skip over comment line
+        self.current_wordle = -1
 
         self.setup_gui()
         self.box_ptr = 0
@@ -226,7 +271,24 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         layV1 = QtWidgets.QVBoxLayout()
         layV2 = QtWidgets.QVBoxLayout()
 
-        test = QtWidgets.QLabel()
+        self.next_wordle_button = QtWidgets.QPushButton('Next Word')
+        self.next_wordle_button.clicked.connect(self.next_wordle_callback)
+        self.next_wordle_label = QtWidgets.QLabel('XXX')
+        self.set_state_button = QtWidgets.QPushButton('Set State')
+        self.set_state_button.clicked.connect(self.set_state_callback)
+        self.score_label = QtWidgets.QLabel('Score')
+
+        next_word_layout = QtWidgets.QHBoxLayout()
+        next_word_layout.addWidget(self.next_wordle_button)
+        next_word_layout.addWidget(self.next_wordle_label)
+        next_word_layout.addStretch()
+        set_state_layout = QtWidgets.QHBoxLayout()
+        set_state_layout.addWidget(self.set_state_button)
+        set_state_layout.addWidget(self.score_label)
+        set_state_layout.addStretch()
+
+        layV1.addLayout(next_word_layout)
+        layV1.addLayout(set_state_layout)
 
         self.box_row = []
         for r in range(TURN_ROWS):
@@ -248,8 +310,16 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
         self.entry_status_box = QtWidgets.QLabel()
 
+        self.reset_button = QtWidgets.QPushButton('Reset')
+        self.reset_button.clicked.connect(self.reset_button_callback)
+
+        reset_layout = QtWidgets.QHBoxLayout()
+        reset_layout.addWidget(self.reset_button)
+        reset_layout.addStretch()
+
         layV1.addWidget(self.letter_entry_box)
         layV1.addWidget(self.entry_status_box)
+        layV1.addLayout(reset_layout)
 
         layV1.addStretch()
 
@@ -264,6 +334,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.possible_box.setFont(fixed_font)
         self.possible_box.setMaximumWidth(120)
         self.possible_box.itemClicked.connect(self.word_clicked_callback)
+        self.possible_box.itemDoubleClicked.connect(self.word_double_clicked_callback)
 
         layV2.addWidget(self.possible_label)
         layV2.addWidget(self.sort_button_score)
@@ -274,6 +345,52 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         layout.addLayout(layV2)
 
         self.main_widget.setLayout(layout)
+
+    def reset_button_callback(self):
+
+
+        self.letter_entry_box.clear()
+
+        for row in range(TURN_ROWS):
+            for k in range(5):
+                bx = self.box_row[row][k]
+                bx.setText('')
+                bx.state = ST_REJECT
+                bx.style_from_state()
+
+        self.box_ptr = 0
+
+        self.update_list()
+
+    def set_state_callback(self):
+
+        if self.current_wordle < 0:
+            return
+
+        row, col = self.box_ptr // 5, self.box_ptr % 5
+        if row >= TURN_ROWS:
+            return
+        if row == 0:
+            return
+
+        bx_row = self.box_row[row-1]
+
+        guess = []
+        for bx in bx_row:
+            guess += bx.text()
+
+        state = get_letter_states(self.real_wordles[self.current_wordle], guess)
+
+        for k in range(5):
+            bx = self.box_row[row-1][k]
+            bx.state = state[k]
+            bx.style_from_state()
+
+        self.update_list()
+
+    def next_wordle_callback(self):
+        self.current_wordle += 1
+        self.next_wordle_label.setText('%s %s' % (self.current_wordle, self.real_wordles[self.current_wordle]))
 
     def sort_score_callback(self):
         currently_legal_words = [self.possible_box.item(x).text() for x in range(self.possible_box.count())]
@@ -307,7 +424,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         s = item.text()
         self.letter_entry_box.setText(s)
         self.letter_entry_box.setFocus()
-        pass
+
+    def word_double_clicked_callback(self, item):
+        self.word_clicked_callback(item)
+        self.word_entered_callback()
 
     def word_entered_callback(self):
 
@@ -335,11 +455,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
         self.box_ptr = min((row+1)*5, (TURN_ROWS-1)*5)
 
-        self.update_list()
+        if self.current_wordle >= 0:
+            self.set_state_callback()
+        else:
+            self.update_list()
 
 words = [line.strip().upper() for line in open("combined_wordlist.txt")]
 words = sorted(words[1:])  #get rid of first line comment
 common_words = [line.strip().upper() for line in open("common_words.txt")]
+
 
 print('Five letter words:', len(words))
 print('Common words: ', len(common_words))

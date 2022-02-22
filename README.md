@@ -20,8 +20,8 @@ possible word list and it will transfer to the edit box.  Press Enter to load it
 Clicking each grid letter cycles it through the result possibilties - grey (not in word), gold (in word by not here), green (correct letter/placement). 
 As results are being entered and letters painted on the grid, the list of remaining words that fit the pattern gets updated. 
 
-By default, the possible words list sorts by the likelihood of generating useful feedback if played on the next move.  This is "Sort by score".  
-If you select the "Sort by usage" radio button, the list sorts according to common usage frequency.
+By default, the possible words list sorts by the likelihood of generating useful feedback if played on the 
+next move.  This is "Sort by score". If you select the "Sort by usage" radio button, the list sorts according to common usage frequency.
 
 python stats.py
 
