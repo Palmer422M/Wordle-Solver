@@ -348,6 +348,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def reset_button_callback(self):
 
+        self.sort_button_score.setChecked(True)
 
         self.letter_entry_box.clear()
 
