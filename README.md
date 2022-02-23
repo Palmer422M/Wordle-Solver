@@ -31,4 +31,12 @@ stats.py contains the scoring functions and is imported into wordle3.  wordle3 c
 
 Wordle word lists are from (https://github.com/Kinkelin/WordleCompetition)
 
+# New Features 2022/02/21
+* reset button - press to clear the grid and start all over.
+* Double-click - double-clicking a word in the list transfers it directly to the grid.
+* Play against Real Wordles - press button to load "Next Word".  As you enter guesses
+ onto the grid, the word will be marked/coded according to the loaded real wordle.
+* Set state button - press to paint the last grid word enetered with results according
+ to the current real-wordle loaded. Not sure if this has any functioonality since the 
+ coding/painting is done upon word entry.
 
