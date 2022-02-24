@@ -15,14 +15,16 @@ https://github.com/Kinkelin/WordleCompetition
 
 
 """
+import re
 import sys
 from stats import score_words, sort_by_score, sort_by_usage
 import json
-#from english_words import english_words_lower_alpha_set
+# from english_words import english_words_lower_alpha_set
 from PyQt5 import QtGui, QtCore, QtWidgets
 
-#words = sorted([w for w in english_words_lower_alpha_set if len(w) == 5])
-#print(len(words))
+
+# words = sorted([w for w in english_words_lower_alpha_set if len(w) == 5])
+# print(len(words))
 TURN_ROWS = 6
 # Letter box states:
 
@@ -53,7 +55,7 @@ def get_letter_states(wordle, guess):
 
     for ltr in range(5):
         print('letter index', ltr)
-        if  guess[ltr] == wordle[ltr]:
+        if guess[ltr] == wordle[ltr]:
             state[ltr] = ST_CORRECT
         elif guess[ltr] not in wordle:
             state[ltr] = ST_REJECT
@@ -83,8 +85,8 @@ def get_letter_states(wordle, guess):
         else:
             state[ltr] = ST_REJECT
 
-
     return state
+
 
 class LetterBox(QtWidgets.QLabel):
     def __init__(self, update_function, parent=None):
@@ -95,18 +97,21 @@ class LetterBox(QtWidgets.QLabel):
         self.setFixedSize(30, 30)
         self.state = ST_REJECT
         self.style_from_state()
-        #self.setTextAlignment(QtCore.Qt.AlignHCenter)
+        # self.setTextAlignment(QtCore.Qt.AlignHCenter)
 
     def style_from_state(self):
 
         if self.state == ST_REJECT:
-            self.setStyleSheet("border: 1px solid black; background-color : gray; color : white")
+            self.setStyleSheet(
+                "border: 1px solid black; background-color : gray; color : white")
 
         elif self.state == ST_ELSEWHERE:
-            self.setStyleSheet("border: 1px solid black; background-color : gold; color : white")
+            self.setStyleSheet(
+                "border: 1px solid black; background-color : gold; color : white")
 
-        else: #correct
-            self.setStyleSheet("border: 1px solid black; background-color : lightgreen; color : white")
+        else:  # correct
+            self.setStyleSheet(
+                "border: 1px solid black; background-color : lightgreen; color : white")
 
     def mousePressEvent(self, event):
         """
@@ -143,8 +148,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle('Wordle Solver')
 
-        self.real_wordles = [line.strip().upper() for line in open("shuffled_real_wordles.txt")]
-        self.real_wordles = self.real_wordles[1:] # skip over comment line
+        self.real_wordles = [line.strip().upper()
+                             for line in open("shuffled_real_wordles.txt")]
+        self.real_wordles = self.real_wordles[1:]  # skip over comment line
         self.current_wordle = -1
 
         self.setup_gui()
@@ -152,10 +158,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
         self.setCentralWidget(self.main_widget)
         self.letter_entry_box.setFocus()
-        #self.main_widget.setFocus()
+        # self.main_widget.setFocus()
 
         self.update_list()
-
 
     def update_list(self):
         """
@@ -172,30 +177,33 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             for w in wlist:
                 if not letter in w:
                     newlist += [w]
-                elif row_word.count(letter) > 1: # rejected letter is in word but if it's fixed in another place then okay
+                # rejected letter is in word but if it's fixed in another place then okay
+                elif row_word.count(letter) > 1:
                     for k, l in enumerate(row_word):
                         if l == letter and ((row_state[k] == ST_CORRECT) or (row_state[k] == ST_ELSEWHERE)):
                             newlist += [w]
                             break
             return newlist
 
-        def edit_elim_positional(wlist, letter, psn):
+        def edit_elim_positional(wlist, letter, psn, nom):
             """
             remove words that:
                 - don't have that letter at all
                 - do have that letter in psn
+                - have the letter a known number of times
             """
             newlist = []
             for w in wlist:
-                if not (w[psn] == letter or letter not in w):
+                if w[psn] != letter and letter in w and nom <= len(list(re.finditer(letter, w))):
                     newlist += [w]
+
             return newlist
 
         def edit_elim_notfixed(wlist, letter, psn):
             newlist = []
             for w in wlist:
                 if w[psn] == letter:
-                   newlist += [w]
+                    newlist += [w]
 
             return newlist
 
@@ -243,7 +251,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 if letter == '':
                     continue
                 if b.state == ST_REJECT:
-                    newlist = edit_elim(newlist, letter, k, this_row_word, this_row_state)
+                    newlist = edit_elim(newlist, letter, k,
+                                        this_row_word, this_row_state)
 
             # third set of edits - letters that must exist but are in wrong postion
             # whole grid
@@ -252,15 +261,18 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 if letter == '':
                     continue
                 if b.state == ST_ELSEWHERE:
-                    newlist = edit_elim_positional(newlist, letter, k)
-
+                    # get other 'elsewhere's for the same letter, the number
+                    # of matches in the target word should be at least as large
+                    # the number of elsewheres
+                    nom = len([box for box in r if box.text() ==
+                              letter and box.state != ST_REJECT])
+                    newlist = edit_elim_positional(newlist, letter, k, nom)
 
         if self.sort_button_score.isChecked():
             scores = score_words(newlist)
             post_new_wlist(sort_by_score(newlist, scores))
         else:
             post_new_wlist(sort_by_usage(newlist, common_words))
-
 
     def setup_gui(self):
 
@@ -334,7 +346,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.possible_box.setFont(fixed_font)
         self.possible_box.setMaximumWidth(120)
         self.possible_box.itemClicked.connect(self.word_clicked_callback)
-        self.possible_box.itemDoubleClicked.connect(self.word_double_clicked_callback)
+        self.possible_box.itemDoubleClicked.connect(
+            self.word_double_clicked_callback)
 
         layV2.addWidget(self.possible_label)
         layV2.addWidget(self.sort_button_score)
@@ -380,7 +393,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         for bx in bx_row:
             guess += bx.text()
 
-        state = get_letter_states(self.real_wordles[self.current_wordle], guess)
+        state = get_letter_states(
+            self.real_wordles[self.current_wordle], guess)
 
         for k in range(5):
             bx = self.box_row[row-1][k]
@@ -391,10 +405,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def next_wordle_callback(self):
         self.current_wordle += 1
-        self.next_wordle_label.setText('%s %s' % (self.current_wordle, self.real_wordles[self.current_wordle]))
+        self.next_wordle_label.setText('%s %s' % (
+            self.current_wordle, self.real_wordles[self.current_wordle]))
 
     def sort_score_callback(self):
-        currently_legal_words = [self.possible_box.item(x).text() for x in range(self.possible_box.count())]
+        currently_legal_words = [self.possible_box.item(
+            x).text() for x in range(self.possible_box.count())]
         self.possible_box.clear()
 
         scores = score_words(words)
@@ -404,13 +420,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.possible_box.addItem(w)
 
     def sort_usage_callback(self):
-        currently_legal_words = [self.possible_box.item(x).text() for x in range(self.possible_box.count())]
+        currently_legal_words = [self.possible_box.item(
+            x).text() for x in range(self.possible_box.count())]
         self.possible_box.clear()
 
         sorted_words = sort_by_usage(currently_legal_words, common_words)
         for w in sorted_words:
             self.possible_box.addItem(w)
-
 
     def letter_entered_callback(self):
         s = self.letter_entry_box.text()
@@ -437,7 +453,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.entry_status_box.setText('Too few letters')
             return
 
-        currently_legal_words = [self.possible_box.item(x).text() for x in range(self.possible_box.count())]
+        currently_legal_words = [self.possible_box.item(
+            x).text() for x in range(self.possible_box.count())]
         if s not in currently_legal_words:
             self.entry_status_box.setText('Not a legal word')
             return
@@ -461,8 +478,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         else:
             self.update_list()
 
+
 words = [line.strip().upper() for line in open("combined_wordlist.txt")]
-words = sorted(words[1:])  #get rid of first line comment
+words = sorted(words[1:])  # get rid of first line comment
 common_words = [line.strip().upper() for line in open("common_words.txt")]
 
 
