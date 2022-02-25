@@ -29,6 +29,13 @@ python wordle3.py
 
 stats.py contains the scoring functions and is imported into wordle3.  wordle3 consists of the GUI code and word-list processing logic.
 
+# Word Scoring
+The word score is currently as follows:
+* form an alphabetic character histogram, H[k] where 'A' <= k <= 'Z',  from all currently legal words, after
+repeated letters are removed.
+* The score for each word is the sum of H[k] for k = all unique letters in the word.
+
+
 Wordle word lists are from (https://github.com/Kinkelin/WordleCompetition)
 
 # New Features 2022/02/21

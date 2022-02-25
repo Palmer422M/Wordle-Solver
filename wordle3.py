@@ -47,12 +47,9 @@ grid_font = QtGui.QFont('Ariel', 18)
 
 def get_letter_states(wordle, guess):
 
-    print('')
-
     state = [None]*5
 
     for ltr in range(5):
-        print('letter index', ltr)
         if  guess[ltr] == wordle[ltr]:
             state[ltr] = ST_CORRECT
         elif guess[ltr] not in wordle:
@@ -67,8 +64,6 @@ def get_letter_states(wordle, guess):
     for ltr in range(5):
         if state[ltr] is not None:
             continue
-
-        print('  %s is Elsewhere' % guess[ltr])
 
         letter_count = wordle.count(guess[ltr])
         mark_count = 0
