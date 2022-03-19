@@ -1,4 +1,7 @@
 """
+
+ToDo: try to clean up outdated comments
+
 routines for wordle match logic.
 Terminology:
     wordle : str, 5-letter
