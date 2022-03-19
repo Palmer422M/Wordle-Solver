@@ -16,6 +16,7 @@ https://github.com/Kinkelin/WordleCompetition
 
 """
 import sys
+import re
 from stats import score_words, sort_by_score, sort_by_usage
 import json
 #from english_words import english_words_lower_alpha_set
@@ -174,7 +175,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                             break
             return newlist
 
-        def edit_elim_positional(wlist, letter, psn):
+        def edit_elim_positional(wlist, letter, psn, nom):
             """
             remove words that:
                 - don't have that letter at all
@@ -182,7 +183,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             """
             newlist = []
             for w in wlist:
-                if not (w[psn] == letter or letter not in w):
+                if w[psn] != letter and letter in w and nom <= len(list(re.finditer(letter, w))):
                     newlist += [w]
             return newlist
 
@@ -247,7 +248,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 if letter == '':
                     continue
                 if b.state == ST_ELSEWHERE:
-                    newlist = edit_elim_positional(newlist, letter, k)
+                    # get other 'elsewhere's for the same letter, the number
+                    # of matches in the target word should be at least as large
+                    # the number of elsewheres
+                    nom = len([box for box in r if box.text() ==
+                              letter and box.state != ST_REJECT])
+                    newlist = edit_elim_positional(newlist, letter, k, nom)
 
 
         if self.sort_button_score.isChecked():
