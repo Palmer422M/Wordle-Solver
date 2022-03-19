@@ -16,11 +16,12 @@ https://github.com/Kinkelin/WordleCompetition
 
 """
 import sys
-import re
 from stats import score_words, sort_by_score, sort_by_usage
 import json
 #from english_words import english_words_lower_alpha_set
 from PyQt5 import QtGui, QtCore, QtWidgets
+
+from matching import filter_word_list, paint_guess
 
 #words = sorted([w for w in english_words_lower_alpha_set if len(w) == 5])
 #print(len(words))
@@ -159,42 +160,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         :return:
         """
 
-        def edit_elim(wlist, letter, psn, row_word, row_state):
-            """
-            eliminate all words that do not contain letter in any position. Except if the letter is
-            duplicated - i.e. fixed in another position a position
-            """
-            newlist = []
-            for w in wlist:
-                if not letter in w:
-                    newlist += [w]
-                elif row_word.count(letter) > 1: # rejected letter is in word but if it's fixed in another place then okay
-                    for k, l in enumerate(row_word):
-                        if l == letter and ((row_state[k] == ST_CORRECT) or (row_state[k] == ST_ELSEWHERE)):
-                            newlist += [w]
-                            break
-            return newlist
-
-        def edit_elim_positional(wlist, letter, psn, nom):
-            """
-            remove words that:
-                - don't have that letter at all
-                - do have that letter in psn
-            """
-            newlist = []
-            for w in wlist:
-                if w[psn] != letter and letter in w and nom <= len(list(re.finditer(letter, w))):
-                    newlist += [w]
-            return newlist
-
-        def edit_elim_notfixed(wlist, letter, psn):
-            newlist = []
-            for w in wlist:
-                if w[psn] == letter:
-                   newlist += [w]
-
-            return newlist
-
         def post_new_wlist(nlist):
             self.possible_box.clear()
 
@@ -225,36 +190,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 this_row_word += letter
                 this_row_state += [b.state]
 
-            # first set of edits - all words that don't have a correct letter in correct psn.
-            for k, b in enumerate(r):
-                letter = b.text()
-                if letter == '':
-                    continue
-                if b.state == ST_CORRECT:
-                    newlist = edit_elim_notfixed(newlist, letter, k)
-
-            # second set of edits - rejected letters unless in fixed position elsewhere
-            for k, b in enumerate(r):
-                letter = b.text()
-                if letter == '':
-                    continue
-                if b.state == ST_REJECT:
-                    newlist = edit_elim(newlist, letter, k, this_row_word, this_row_state)
-
-            # third set of edits - letters that must exist but are in wrong postion
-            # whole grid
-            for k, b in enumerate(r):
-                letter = b.text()
-                if letter == '':
-                    continue
-                if b.state == ST_ELSEWHERE:
-                    # get other 'elsewhere's for the same letter, the number
-                    # of matches in the target word should be at least as large
-                    # the number of elsewheres
-                    nom = len([box for box in r if box.text() ==
-                              letter and box.state != ST_REJECT])
-                    newlist = edit_elim_positional(newlist, letter, k, nom)
-
+            if len(this_row_word) > 0:
+                newlist = filter_word_list(newlist, this_row_word, this_row_state)
 
         if self.sort_button_score.isChecked():
             scores = score_words(newlist)
