@@ -51,8 +51,9 @@ print('Common words that are legal wordles = ', len(common_words))
 non_nrl_guesses = remove_non_nrl(combined_wordlist)
 print('reduced guesses len', len(non_nrl_guesses))
 
+
 first_guess = 'LARES'
-status = [E, E, R, R, R]
+status = [R, R, E, E, R]
 #first_guess = 'CRANE'
 #first_guess = 'SOARE'
 #status = paint_guess('SWEET', first_guess)

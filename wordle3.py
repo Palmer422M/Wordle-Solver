@@ -376,9 +376,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             return
 
         currently_legal_words = [self.possible_box.item(x).text() for x in range(self.possible_box.count())]
-        if s not in currently_legal_words:
-            self.entry_status_box.setText('Not a legal word')
-            return
+        #if s not in currently_legal_words:
+        #    self.entry_status_box.setText('Not a legal word')
+        #    return
 
         self.letter_entry_box.clear()
 
