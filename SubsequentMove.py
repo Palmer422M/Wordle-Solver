@@ -18,11 +18,14 @@ Terminology:
 """
 import time
 from matching import *
+import argparse
 
 # the following for testing readability
 C = ST_CORRECT
 E = ST_ELSEWHERE
 R = ST_REJECT
+
+DEFAULT_FIRST_WORD = 'LARES'
 
 """
 
@@ -33,6 +36,14 @@ So simulate the next level search that would follow this move
  - obtain a reduced guess list that includes only NRL words - for probe moves, only interested in those
  - benchmark a search for best subseqent move
 """
+def _psetup():
+    parser = argparse.ArgumentParser(description='Wordle Subsequent Move Search')
+    parser.add_argument('fb', help='Feedback - String of E, C, R to code response to first guess')
+    parser.add_argument('-f', type=str, default=DEFAULT_FIRST_WORD,  help='First guess word that was entered')
+
+    return parser
+
+args = _psetup().parse_args()
 
 combined_wordlist = [line.strip().upper() for line in open("combined_wordlist.txt")]
 combined_wordlist = sorted(combined_wordlist[1:])  # get rid of first line comment
@@ -52,8 +63,26 @@ non_nrl_guesses = remove_non_nrl(combined_wordlist)
 print('reduced guesses len', len(non_nrl_guesses))
 
 
-first_guess = 'LARES'
-status = [R, R, E, E, R]
+first_guess = args.f
+print('First Word: ', first_guess)
+
+if len(args.fb) != 5:
+    print('Feedback string must be 5 characters')
+    exit()
+status = []
+for fbl in args.fb:
+    if fbl == 'R':
+        status += [R]
+    elif fbl == 'E':
+        status += [E]
+    elif fbl == 'C':
+        status += [C]
+    else:
+        print('Illegal character <%s> in status word' % fbl)
+        exit()
+
+print('Status: ', status)
+
 #first_guess = 'CRANE'
 #first_guess = 'SOARE'
 #status = paint_guess('SWEET', first_guess)
